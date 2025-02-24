@@ -1,7 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Calendar, Clock, MapPin, Users, Image as ImageIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 function CreateEvent() {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const navigate = useNavigate();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Handle form submission logic here
+    console.log({ title, description, date, time });
+    // Navigate to another page or show a success message
+    navigate('/events');
+  };
+
   return (
     <div>
       <div className="mb-8">
@@ -9,13 +24,16 @@ function CreateEvent() {
         <p className="text-gray-400 mt-2">Fill in the details below to create a new event.</p>
       </div>
 
-      <form className="bg-gray-800 rounded-lg p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-gray-800 rounded-lg p-6 space-y-6">
         <div>
           <label className="block text-white mb-2">Event Title</label>
           <input
             type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             placeholder="Enter event title"
+            required
           />
         </div>
 
@@ -25,7 +43,10 @@ function CreateEvent() {
             <div className="relative">
               <input
                 type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
                 className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                required
               />
               <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
             </div>
@@ -35,7 +56,10 @@ function CreateEvent() {
             <div className="relative">
               <input
                 type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
                 className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                required
               />
               <Clock className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
             </div>
@@ -69,8 +93,11 @@ function CreateEvent() {
         <div>
           <label className="block text-white mb-2">Description</label>
           <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 h-32"
             placeholder="Enter event description"
+            required
           ></textarea>
         </div>
 

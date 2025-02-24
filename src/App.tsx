@@ -1,12 +1,39 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { Calendar, Users, Bell, LogOut, Menu, X } from 'lucide-react';
+import { Calendar, Users, Bell, LogOut, Menu, X, User, PlusCircle, ClipboardList } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Events from './pages/Events';
-import CreateEvent from './pages/CreateEvent';
+import CreateEventWithForm from './pages/CreateEventWithForm';
+import Profile from './pages/Profile';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import VerifyEmail from './pages/VerifyEmail';
+import Notifications from './pages/Notifications';
+import Admin from './pages/Admin';
+import PrivateRoute from './components/PrivateRoute';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from './firebaseConfig';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
+
+const db = getFirestore();
 
 function App() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [user] = useAuthState(auth);
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user) {
+        const docRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setRole(docSnap.data().role);
+        }
+      }
+    };
+    fetchUserRole();
+  }, [user]);
 
   return (
     <Router>
@@ -51,22 +78,69 @@ function App() {
               <Users className="h-5 w-5 text-blue-400" />
               <span>Events</span>
             </Link>
-            <Link
-              to="/notifications"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              <Bell className="h-5 w-5 text-blue-400" />
-              <span>Notifications</span>
-            </Link>
+            {user && user.emailVerified && (
+              <>
+                <Link
+                  to="/notifications"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  <Bell className="h-5 w-5 text-blue-400" />
+                  <span>Notifications</span>
+                </Link>
+                <Link
+                  to="/profile"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  <User className="h-5 w-5 text-blue-400" />
+                  <span>Profile</span>
+                </Link>
+                {role === 'admin' && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    <ClipboardList className="h-5 w-5 text-blue-400" />
+                    <span>Requests</span>
+                  </Link>
+                )}
+              </>
+            )}
+            {user && role === 'organizer' && (
+              <Link
+                to="/create-event"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                <PlusCircle className="h-5 w-5 text-blue-400" />
+                <span>Create Event</span>
+              </Link>
+            )}
+            {!user && (
+              <Link
+                to="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                <PlusCircle className="h-5 w-5 text-blue-400" />
+                <span>Login</span>
+              </Link>
+            )}
           </nav>
 
-          <div className="absolute bottom-0 left-0 w-64 p-6">
-            <button className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors w-full">
-              <LogOut className="h-5 w-5 text-blue-400" />
-              <span>Logout</span>
-            </button>
-          </div>
+          {user && (
+            <div className="absolute bottom-0 left-0 w-64 p-6">
+              <button
+                onClick={() => auth.signOut()}
+                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700 transition-colors w-full"
+              >
+                <LogOut className="h-5 w-5 text-blue-400" />
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
         </aside>
 
         {/* Overlay for mobile menu */}
@@ -82,7 +156,13 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/events" element={<Events />} />
-            <Route path="/create-event" element={<CreateEvent />} />
+            <Route path="/create-event" element={<PrivateRoute><CreateEventWithForm /></PrivateRoute>} />
+            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+            <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
           </Routes>
         </main>
       </div>

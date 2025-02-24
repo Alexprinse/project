@@ -1,0 +1,45 @@
+.profile-card {
+  background-color: #1f2937;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
+}
+
+.profile-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 0.5rem;
+  border: 2px solid transparent;
+  transition: border-color 0.3s ease;
+  pointer-events: none;
+}
+
+.profile-card:hover {
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.8);
+}
+
+.profile-card:hover::before {
+  border-color: #00f0ff;
+}
+
+@keyframes neon-border {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
+}
+
+.profile-card h2,
+.profile-card p {
+  position: relative;
+  z-index: 2;
+}
