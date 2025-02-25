@@ -97,7 +97,7 @@ function Events() {
                   </div>
                 </div>
                 <button
-                  onClick={() => navigate(`/events/${event.id}`)}
+                  onClick={() => navigate(`/event-details/${event.id}`)}
                   className="mt-4 w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors"
                 >
                   View Details
