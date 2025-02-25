@@ -10,6 +10,7 @@ import Signup from './pages/Signup';
 import VerifyEmail from './pages/VerifyEmail';
 import Notifications from './pages/Notifications';
 import Admin from './pages/Admin';
+import EventDetails from './pages/EventDetails'; // Import the EventDetails component
 import PrivateRoute from './components/PrivateRoute';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from './firebaseConfig';
@@ -156,6 +157,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/events" element={<Events />} />
+            <Route path="/events/:eventId" element={<EventDetails />} /> {/* Add this line */}
             <Route path="/create-event" element={<PrivateRoute><CreateEventWithForm /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
             <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
