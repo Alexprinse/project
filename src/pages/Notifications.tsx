@@ -1,29 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { db, auth } from '../firebaseConfig';
 import Loading from '../components/Loading';  // Import the Loading component
+
+interface Notification {
+  id: string;
+  message: string;
+  details: string;
+  read: boolean;
+}
 
 const Notifications: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'new' | 'read'>('new');
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [authUser] = useAuthState(auth);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Simulate a loading delay
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    const fetchNotifications = async () => {
+      if (!authUser) return;
 
-    return () => clearTimeout(timer);
-  }, []);
+      const q = query(collection(db, 'notifications'), where('userId', '==', authUser.uid));
+      const querySnapshot = await getDocs(q);
+      const notificationsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Notification[];
+
+      setNotifications(notificationsData);
+      setLoading(false);
+    };
+
+    fetchNotifications();
+  }, [authUser]);
 
   const handleTabClick = (tab: 'new' | 'read') => {
     setActiveTab(tab);
     navigate(`#${tab}`);
   };
 
+  const handleNotificationClick = async (id: string) => {
+    const notificationRef = doc(db, 'notifications', id);
+    await updateDoc(notificationRef, { read: true });
+
+    setNotifications(notifications.map(notification =>
+      notification.id === id ? { ...notification, read: true } : notification
+    ));
+  };
+
+  const handleNotificationClose = async (id: string) => {
+    const notificationRef = doc(db, 'notifications', id);
+    await updateDoc(notificationRef, { read: true });
+
+    setNotifications(notifications.map(notification =>
+      notification.id === id ? { ...notification, read: true } : notification
+    ));
+  };
+
   if (loading) {
     return <Loading />;
   }
+
+  const newNotifications = notifications.filter(notification => !notification.read);
+  const readNotifications = notifications.filter(notification => notification.read);
 
   return (
     <div className="p-6 bg-gray-900 rounded-lg shadow-lg text-white">
@@ -48,15 +90,49 @@ const Notifications: React.FC = () => {
         {activeTab === 'new' && (
           <div id="new" className="w-full">
             <h2 className="text-2xl font-bold mb-4 text-center">New Notifications</h2>
-            {/* Add your new notifications content here */}
-            <p className="text-left">No new notifications</p>
+            {newNotifications.length === 0 ? (
+              <p className="text-center">No new notifications</p>
+            ) : (
+              newNotifications.map(notification => (
+                <div key={notification.id} className="bg-gray-800 p-4 mb-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+                  <p className="text-lg font-semibold">{notification.message}</p>
+                  <button
+                    onClick={() => handleNotificationClick(notification.id)}
+                    className="mt-2 w-full py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white"
+                  >
+                    View Details
+                  </button>
+                  {notification.read && (
+                    <div className="mt-4">
+                      <p>{notification.details}</p>
+                      <button
+                        onClick={() => handleNotificationClose(notification.id)}
+                        className="mt-2 w-full py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         )}
         {activeTab === 'read' && (
           <div id="read" className="w-full">
             <h2 className="text-2xl font-bold mb-4 text-center">Read Notifications</h2>
-            {/* Add your read notifications content here */}
-            <p className="text-left">No read notifications</p>
+            {readNotifications.length === 0 ? (
+              <p className="text-center">No read notifications</p>
+            ) : (
+              readNotifications.map(notification => (
+                <div key={notification.id} className="bg-gray-800 p-4 mb-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+                  <p className="text-lg font-semibold">{notification.message}</p>
+                  <div className="mt-4">
+                    <p>{notification.details}</p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>
