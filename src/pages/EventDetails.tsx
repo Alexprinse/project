@@ -5,6 +5,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { Calendar, MapPin, Users, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { db, auth } from '../firebaseConfig';
+import emailjs from 'emailjs-com';
 
 const EventDetails: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -20,13 +21,20 @@ const EventDetails: React.FC = () => {
       setLoading(true);
       setError('');
       try {
+        console.log(`Fetching event with ID: ${eventId}`);
+        
         const docRef = doc(db, 'events', eventId);
         const docSnap = await getDoc(docRef);
+
         if (docSnap.exists()) {
           const eventData = docSnap.data();
           setEvent(eventData);
+
+          console.log("Event data fetched:", eventData);
+
           if (user && eventData.attendees && eventData.attendees.includes(user.uid)) {
             setIsRegistered(true);
+            console.log("User is already registered.");
           }
         } else {
           setError('Event not found');
@@ -45,6 +53,8 @@ const EventDetails: React.FC = () => {
   const handleRegister = async () => {
     if (user && event) {
       try {
+        console.log("Registering user:", user.uid);
+        
         const eventRef = doc(db, 'events', eventId);
         const userRef = doc(db, 'users', user.uid);
 
@@ -56,8 +66,27 @@ const EventDetails: React.FC = () => {
           upcomingEvents: increment(1)
         });
 
+        console.log("Registration successful");
         setIsRegistered(true);
         alert('You have successfully registered for the event.');
+
+        // Send confirmation email using EmailJS
+        const templateParams = {
+          user_name: user.displayName || 'Participant',
+          user_email: user.email,
+          event_title: event.title,
+          event_date: format(event.dateTime.toDate(), 'MMMM d, yyyy h:mm aa'),
+          event_location: event.location,
+        };
+
+        emailjs.send('service_ix7pdyd', 'template_v4knz7b', templateParams, 'W3NTTHqXUaDSrUjZo')
+          .then((response) => {
+            console.log('Email sent successfully:', response.status, response.text);
+          })
+          .catch((error) => {
+            console.error('Error sending email:', error);
+          });
+
       } catch (err) {
         console.error('Error registering for event:', err);
         alert('Failed to register for the event. Please try again.');
