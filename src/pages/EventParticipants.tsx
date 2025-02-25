@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebaseConfig';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import Loading from '../components/Loading';  // Import the Loading component
 
 const EventParticipants: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -57,7 +58,7 @@ const EventParticipants: React.FC = () => {
   }, [user, eventId]);
 
   if (loading) {
-    return <div className="text-white">Loading...</div>;
+    return <Loading />;
   }
 
   if (error) {

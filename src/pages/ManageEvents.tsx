@@ -3,11 +3,13 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../firebaseConfig';
 import { getFirestore, collection, query, where, getDocs, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
+import Loading from '../components/Loading';  // Import the Loading component
 
 const ManageEvents: React.FC = () => {
   const [user] = useAuthState(auth);
   const [events, setEvents] = useState<any[]>([]);
   const [role, setRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,6 +28,7 @@ const ManageEvents: React.FC = () => {
 
   useEffect(() => {
     const fetchEvents = async () => {
+      setLoading(true);
       if (user && role) {
         const eventsRef = collection(db, 'events');
         let q;
@@ -38,6 +41,7 @@ const ManageEvents: React.FC = () => {
         const eventsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setEvents(eventsList);
       }
+      setLoading(false);
     };
 
     fetchEvents();
@@ -60,8 +64,8 @@ const ManageEvents: React.FC = () => {
     navigate(`/event-participants/${eventId}`);
   };
 
-  if (!user || role === null) {
-    return <div className="text-white">Loading...</div>;
+  if (!user || role === null || loading) {
+    return <Loading />;
   }
 
   return (

@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebaseConfig';
 import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import Loading from '../components/Loading';  // Import the Loading component
 
 const db = getFirestore();
 
@@ -13,6 +14,7 @@ function Dashboard() {
   const [role, setRole] = useState<string | null>(null);
   const [registeredEvents, setRegisteredEvents] = useState<any[]>([]);
   const [otherEvents, setOtherEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -29,6 +31,7 @@ function Dashboard() {
 
   useEffect(() => {
     const fetchEvents = async () => {
+      setLoading(true);
       const allEventsQuery = collection(db, 'events');
       const allEventsSnapshot = await getDocs(allEventsQuery);
       const allEventsData = allEventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -43,6 +46,7 @@ function Dashboard() {
       } else {
         setOtherEvents(allEventsData);
       }
+      setLoading(false);
     };
     fetchEvents();
   }, [user]);
@@ -61,101 +65,107 @@ function Dashboard() {
         ) : null}
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-        <div className="bg-gray-800 p-4 md:p-6 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 mb-1">Total Events</p>
-              <p className="text-xl md:text-2xl font-bold text-white">24</p>
-            </div>
-            <Calendar className="h-8 w-8 text-blue-400" />
-          </div>
-        </div>
-        <div className="bg-gray-800 p-4 md:p-6 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 mb-1">Total Attendees</p>
-              <p className="text-xl md:text-2xl font-bold text-white">1,234</p>
-            </div>
-            <Users className="h-8 w-8 text-blue-400" />
-          </div>
-        </div>
-        <div className="bg-gray-800 p-4 md:p-6 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 mb-1">Engagement Rate</p>
-              <p className="text-xl md:text-2xl font-bold text-white">85%</p>
-            </div>
-            <TrendingUp className="h-8 w-8 text-blue-400" />
-          </div>
-        </div>
-        <div className="bg-gray-800 p-4 md:p-6 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 mb-1">Upcoming Events</p>
-              <p className="text-xl md:text-2xl font-bold text-white">8</p>
-            </div>
-            <Clock className="h-8 w-8 text-blue-400" />
-          </div>
-        </div>
-      </div>
-
-      {/* Registered Events */}
-      {user && (
-        <div className="bg-gray-800 rounded-lg p-4 md:p-6 mb-8">
-          <h2 className="text-lg md:text-xl font-bold text-white mb-4">Registered Events</h2>
-          <div className="space-y-4">
-            {registeredEvents.map(event => (
-              <div key={event.id} className="bg-gray-700 p-4 rounded-lg">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">{event.title}</h3>
-                    <p className="text-gray-400">{format(new Date(event.dateTime.seconds * 1000), 'MMMM d, yyyy h:mm aa')}</p>
-                    <p className="text-gray-400">{event.location}</p>
-                  </div>
-                  <div className="w-full sm:w-auto text-left sm:text-right">
-                    <div className="flex items-center space-x-2 text-gray-400 justify-start sm:justify-end">
-                      <Users className="h-4 w-4" />
-                      <span>{event.attendees?.length || 0} attendees</span>
-                    </div>
-                    <Link to={`/event-details/${event.id}`} className="mt-2 text-blue-400 hover:text-blue-300 transition-colors w-full sm:w-auto">
-                      View Details
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Other Events */}
-      <div className="bg-gray-800 rounded-lg p-4 md:p-6">
-        <h2 className="text-lg md:text-xl font-bold text-white mb-4">{user ? 'Other Events' : 'Events'}</h2>
-        <div className="space-y-4">
-          {otherEvents.map(event => (
-            <div key={event.id} className="bg-gray-700 p-4 rounded-lg">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {loading ? (
+        <Loading />
+      ) : (
+        <>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+            <div className="bg-gray-800 p-4 md:p-6 rounded-lg">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-white">{event.title}</h3>
-                  <p className="text-gray-400">{format(new Date(event.dateTime.seconds * 1000), 'MMMM d, yyyy h:mm aa')}</p>
-                  <p className="text-gray-400">{event.location}</p>
+                  <p className="text-gray-400 mb-1">Total Events</p>
+                  <p className="text-xl md:text-2xl font-bold text-white">24</p>
                 </div>
-                <div className="w-full sm:w-auto text-left sm:text-right">
-                  <div className="flex items-center space-x-2 text-gray-400 justify-start sm:justify-end">
-                    <Users className="h-4 w-4" />
-                    <span>{event.attendees?.length || 0} attendees</span>
-                  </div>
-                  <Link to={`/event-details/${event.id}`} className="mt-2 text-blue-400 hover:text-blue-300 transition-colors w-full sm:w-auto">
-                    View Details
-                  </Link>
-                </div>
+                <Calendar className="h-8 w-8 text-blue-400" />
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+            <div className="bg-gray-800 p-4 md:p-6 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 mb-1">Total Attendees</p>
+                  <p className="text-xl md:text-2xl font-bold text-white">1,234</p>
+                </div>
+                <Users className="h-8 w-8 text-blue-400" />
+              </div>
+            </div>
+            <div className="bg-gray-800 p-4 md:p-6 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 mb-1">Engagement Rate</p>
+                  <p className="text-xl md:text-2xl font-bold text-white">85%</p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-blue-400" />
+              </div>
+            </div>
+            <div className="bg-gray-800 p-4 md:p-6 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 mb-1">Upcoming Events</p>
+                  <p className="text-xl md:text-2xl font-bold text-white">8</p>
+                </div>
+                <Clock className="h-8 w-8 text-blue-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* Registered Events */}
+          {user && (
+            <div className="bg-gray-800 rounded-lg p-4 md:p-6 mb-8">
+              <h2 className="text-lg md:text-xl font-bold text-white mb-4">Registered Events</h2>
+              <div className="space-y-4">
+                {registeredEvents.map(event => (
+                  <div key={event.id} className="bg-gray-700 p-4 rounded-lg">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">{event.title}</h3>
+                        <p className="text-gray-400">{format(new Date(event.dateTime.seconds * 1000), 'MMMM d, yyyy h:mm aa')}</p>
+                        <p className="text-gray-400">{event.location}</p>
+                      </div>
+                      <div className="w-full sm:w-auto text-left sm:text-right">
+                        <div className="flex items-center space-x-2 text-gray-400 justify-start sm:justify-end">
+                          <Users className="h-4 w-4" />
+                          <span>{event.attendees?.length || 0} attendees</span>
+                        </div>
+                        <Link to={`/event-details/${event.id}`} className="mt-2 text-blue-400 hover:text-blue-300 transition-colors w-full sm:w-auto">
+                          View Details
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Other Events */}
+          <div className="bg-gray-800 rounded-lg p-4 md:p-6">
+            <h2 className="text-lg md:text-xl font-bold text-white mb-4">{user ? 'Other Events' : 'Events'}</h2>
+            <div className="space-y-4">
+              {otherEvents.map(event => (
+                <div key={event.id} className="bg-gray-700 p-4 rounded-lg">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">{event.title}</h3>
+                      <p className="text-gray-400">{format(new Date(event.dateTime.seconds * 1000), 'MMMM d, yyyy h:mm aa')}</p>
+                      <p className="text-gray-400">{event.location}</p>
+                    </div>
+                    <div className="w-full sm:w-auto text-left sm:text-right">
+                      <div className="flex items-center space-x-2 text-gray-400 justify-start sm:justify-end">
+                        <Users className="h-4 w-4" />
+                        <span>{event.attendees?.length || 0} attendees</span>
+                      </div>
+                      <Link to={`/event-details/${event.id}`} className="mt-2 text-blue-400 hover:text-blue-300 transition-colors w-full sm:w-auto">
+                        View Details
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

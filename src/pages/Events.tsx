@@ -4,6 +4,7 @@ import { Search, Filter, Calendar, MapPin, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';  // Import the initialized Firestore instance
+import Loading from '../components/Loading';  // Import the Loading component
 
 function Events() {
   const [events, setEvents] = useState([]);
@@ -63,7 +64,7 @@ function Events() {
       </div>
 
       {loading ? (
-        <p className="text-white text-center">Loading events...</p>
+        <Loading />
       ) : error ? (
         <p className="text-red-500 text-center">{error}</p>
       ) : filteredEvents.length === 0 ? (

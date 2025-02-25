@@ -6,6 +6,7 @@ import { Calendar, MapPin, Users, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { db, auth } from '../firebaseConfig';
 import emailjs from 'emailjs-com';
+import Loading from '../components/Loading';  // Import the Loading component
 
 const EventDetails: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -98,7 +99,7 @@ const EventDetails: React.FC = () => {
   };
 
   if (loading) {
-    return <p className="text-white text-center">Loading event details...</p>;
+    return <Loading />;
   }
 
   if (error) {

@@ -4,6 +4,7 @@ import { auth } from '../firebaseConfig';
 import { getFirestore, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
 import './Profile.css'; // Import the CSS file
+import Loading from '../components/Loading';  // Import the Loading component
 
 const db = getFirestore();
 
@@ -11,10 +12,12 @@ function Profile() {
   const [user] = useAuthState(auth);
   const [profileData, setProfileData] = useState<any>(null);
   const [upcomingEventsCount, setUpcomingEventsCount] = useState(0);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProfileData = async () => {
+      setLoading(true);
       if (user) {
         const docRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(docRef);
@@ -22,6 +25,7 @@ function Profile() {
           setProfileData(docSnap.data());
         }
       }
+      setLoading(false);
     };
     fetchProfileData();
   }, [user]);
@@ -39,6 +43,10 @@ function Profile() {
       return () => unsubscribe();
     }
   }, [user]);
+
+  if (loading) {
+    return <Loading />;
+  }
 
   if (!profileData) {
     return <div className="text-white">Loading...</div>;
