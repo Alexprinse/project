@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { Calendar, MapPin, Users, Clock } from 'lucide-react';
 import { format } from 'date-fns';
@@ -12,6 +12,7 @@ const EventDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [user] = useAuthState(auth);
+  const [isRegistered, setIsRegistered] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,7 +23,11 @@ const EventDetails: React.FC = () => {
         const docRef = doc(db, 'events', eventId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setEvent(docSnap.data());
+          const eventData = docSnap.data();
+          setEvent(eventData);
+          if (user && eventData.attendees && eventData.attendees.includes(user.uid)) {
+            setIsRegistered(true);
+          }
         } else {
           setError('Event not found');
         }
@@ -35,15 +40,23 @@ const EventDetails: React.FC = () => {
     };
 
     fetchEvent();
-  }, [eventId]);
+  }, [eventId, user]);
 
   const handleRegister = async () => {
     if (user && event) {
       try {
         const eventRef = doc(db, 'events', eventId);
+        const userRef = doc(db, 'users', user.uid);
+
         await updateDoc(eventRef, {
           attendees: arrayUnion(user.uid)
         });
+
+        await updateDoc(userRef, {
+          upcomingEvents: increment(1)
+        });
+
+        setIsRegistered(true);
         alert('You have successfully registered for the event.');
       } catch (err) {
         console.error('Error registering for event:', err);
@@ -101,9 +114,10 @@ const EventDetails: React.FC = () => {
       </div>
       <button
         onClick={handleRegister}
-        className="mt-6 w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors"
+        disabled={isRegistered}
+        className={`mt-6 w-full py-2 rounded-lg transition-colors ${isRegistered ? 'bg-gray-500 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
       >
-        Register
+        {isRegistered ? 'Registered' : 'Register'}
       </button>
     </div>
   );
