@@ -82,7 +82,7 @@ function Events() {
                   <span className="text-sm text-blue-400">{event.category}</span>
                   <div className="flex items-center text-gray-400">
                     <Users className="h-4 w-4 mr-1" />
-                    <span>{event.attendees || 0}</span>
+                    <span>{event.attendees?.length || 0}</span>
                   </div>
                 </div>
                 <h3 className="text-lg md:text-xl font-bold text-white mb-2">{event.title}</h3>

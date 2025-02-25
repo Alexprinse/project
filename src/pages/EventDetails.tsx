@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { useParams, useNavigate } from 'react-router-dom';
+import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { useAuthState } from 'react-firebase-hooks/auth';
 import { Calendar, MapPin, Users, Clock } from 'lucide-react';
 import { format } from 'date-fns';
-import { db } from '../firebaseConfig';
+import { db, auth } from '../firebaseConfig';
 
 const EventDetails: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [user] = useAuthState(auth);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -33,6 +36,24 @@ const EventDetails: React.FC = () => {
 
     fetchEvent();
   }, [eventId]);
+
+  const handleRegister = async () => {
+    if (user && event) {
+      try {
+        const eventRef = doc(db, 'events', eventId);
+        await updateDoc(eventRef, {
+          attendees: arrayUnion(user.uid)
+        });
+        alert('You have successfully registered for the event.');
+      } catch (err) {
+        console.error('Error registering for event:', err);
+        alert('Failed to register for the event. Please try again.');
+      }
+    } else {
+      alert('You need to be logged in to register for the event.');
+      navigate('/login');
+    }
+  };
 
   if (loading) {
     return <p className="text-white text-center">Loading event details...</p>;
@@ -71,13 +92,19 @@ const EventDetails: React.FC = () => {
         </div>
         <div className="flex items-center">
           <Users className="h-5 w-5 mr-2" />
-          <span>{event.attendees || 0} attendees</span>
+          <span>{event.attendees?.length || 0} attendees</span>
         </div>
       </div>
       <div className="mt-6">
         <h2 className="text-2xl font-bold mb-2">Description</h2>
         <p className="text-gray-400">{event.description}</p>
       </div>
+      <button
+        onClick={handleRegister}
+        className="mt-6 w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors"
+      >
+        Register
+      </button>
     </div>
   );
 };
