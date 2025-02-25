@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getFirestore, collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebaseConfig';
+import Loading from '../components/Loading';  // Import the Loading component
 
 const db = getFirestore();
 
@@ -21,6 +22,7 @@ const Admin: React.FC = () => {
   const [requests, setRequests] = useState<User[]>([]);
   const [organizers, setOrganizers] = useState<User[]>([]);
   const [activeTab, setActiveTab] = useState<'requests' | 'organizers'>('requests');
+  const [loading, setLoading] = useState(true);  // Add loading state
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -38,19 +40,23 @@ const Admin: React.FC = () => {
 
   useEffect(() => {
     const fetchRequests = async () => {
+      setLoading(true);  // Set loading to true
       const querySnapshot = await getDocs(collection(db, 'users'));
       const requestsData = querySnapshot.docs
         .map(doc => ({ ...doc.data(), id: doc.id } as User))
         .filter((user: User) => user.requestOrganizer && user.role === 'general');
       setRequests(requestsData);
+      setLoading(false);  // Set loading to false
     };
 
     const fetchOrganizers = async () => {
+      setLoading(true);  // Set loading to true
       const querySnapshot = await getDocs(collection(db, 'users'));
       const organizersData = querySnapshot.docs
         .map(doc => ({ ...doc.data(), id: doc.id } as User))
         .filter((user: User) => user.role === 'organizer');
       setOrganizers(organizersData);
+      setLoading(false);  // Set loading to false
     };
 
     if (user && user.role === 'admin') {
@@ -87,6 +93,10 @@ const Admin: React.FC = () => {
 
   if (!user || user.role !== 'admin') {
     return <div className="text-white">Access Denied</div>;
+  }
+
+  if (loading) {
+    return <Loading />;  // Render Loading component when loading
   }
 
   return (
