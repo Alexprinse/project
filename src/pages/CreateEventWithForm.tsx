@@ -33,12 +33,14 @@ function CreateEventWithForm() {
           category,
           registrationType,
           formSections,
-          creatorId: user.uid,
+          organizerId: user.uid, // Add organizerId
         });
+        alert('Event created successfully.');
         navigate('/events');
       }
     } catch (err) {
       console.error('Error creating event:', err);
+      alert('Failed to create the event. Please try again.');
     }
   };
 

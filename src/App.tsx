@@ -10,11 +10,13 @@ import Signup from './pages/Signup';
 import VerifyEmail from './pages/VerifyEmail';
 import Notifications from './pages/Notifications';
 import Admin from './pages/Admin';
-import EventDetails from './pages/EventDetails'; // Import the EventDetails component
+import EventDetails from './pages/EventDetails';
 import PrivateRoute from './components/PrivateRoute';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from './firebaseConfig';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import ManageEvents from './pages/ManageEvents'; // Import the ManageEvents component
+import EventParticipants from './pages/EventParticipants'; // Import the EventParticipants component
 
 const db = getFirestore();
 
@@ -157,7 +159,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/events" element={<Events />} />
-            <Route path="/events/:eventId" element={<EventDetails />} /> {/* Add this line */}
+            <Route path="/event-details/:eventId" element={<EventDetails />} /> {/* Updated route */}
             <Route path="/create-event" element={<PrivateRoute><CreateEventWithForm /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
             <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
@@ -165,6 +167,8 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
+            <Route path="/manage-events" element={<PrivateRoute><ManageEvents /></PrivateRoute>} />
+            <Route path="/event-participants/:eventId" element={<PrivateRoute><EventParticipants /></PrivateRoute>} />
           </Routes>
         </main>
       </div>

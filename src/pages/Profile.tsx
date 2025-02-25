@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebaseConfig';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { useNavigate, Link } from 'react-router-dom';
 import './Profile.css'; // Import the CSS file
 
 const db = getFirestore();
@@ -9,6 +10,8 @@ const db = getFirestore();
 function Profile() {
   const [user] = useAuthState(auth);
   const [profileData, setProfileData] = useState<any>(null);
+  const [upcomingEventsCount, setUpcomingEventsCount] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -21,6 +24,20 @@ function Profile() {
       }
     };
     fetchProfileData();
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      const unsubscribe = onSnapshot(doc(db, 'users', user.uid), (doc) => {
+        const data = doc.data();
+        if (data) {
+          setProfileData(data);
+          setUpcomingEventsCount(data.upcomingEvents);
+        }
+      });
+
+      return () => unsubscribe();
+    }
   }, [user]);
 
   if (!profileData) {
@@ -55,7 +72,7 @@ function Profile() {
         </div>
         <div className="profile-card">
           <h2 className="text-xl font-semibold">Upcoming Events</h2>
-          <p className="text-lg">{profileData.upcomingEvents}</p>
+          <p className="text-lg">{upcomingEventsCount}</p>
         </div>
         <div className="profile-card">
           <h2 className="text-xl font-semibold">Completed Events</h2>
@@ -65,6 +82,9 @@ function Profile() {
           <div className="profile-card">
             <h2 className="text-xl font-semibold">Role</h2>
             <p className="text-lg">{profileData.role}</p>
+            <Link to="/manage-events" className="mt-2 w-full py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-center block">
+              Manage Events
+            </Link>
           </div>
         )}
       </div>
