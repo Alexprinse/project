@@ -45,8 +45,8 @@ export function AuthForm({ type }: AuthFormProps) {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <form onSubmit={handleSubmit} className="bg-gray-800 p-8 rounded-lg shadow-lg">
+    <div className="w-full max-w-md mx-auto glassmorphism p-8 rounded-lg shadow-lg">
+      <form onSubmit={handleSubmit}>
         <h2 className="text-2xl font-bold text-white mb-6">
           {type === 'login' ? 'Sign In' : 'Create Account'}
         </h2>
@@ -65,7 +65,7 @@ export function AuthForm({ type }: AuthFormProps) {
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full bg-gray-700 text-white pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full bg-gray-700 text-white pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 neumorphism"
                 required
               />
               <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
@@ -80,7 +80,7 @@ export function AuthForm({ type }: AuthFormProps) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-gray-700 text-white pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full bg-gray-700 text-white pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 neumorphism"
               required
             />
             <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
@@ -94,7 +94,7 @@ export function AuthForm({ type }: AuthFormProps) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-gray-700 text-white pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full bg-gray-700 text-white pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 neumorphism"
               required
             />
             <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
@@ -104,7 +104,7 @@ export function AuthForm({ type }: AuthFormProps) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-blue-500/50 disabled:cursor-not-allowed"
+          className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-blue-500/50 disabled:cursor-not-allowed neumorphism"
         >
           {loading ? 'Please wait...' : type === 'login' ? 'Sign In' : 'Create Account'}
         </button>

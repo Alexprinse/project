@@ -16,6 +16,12 @@ export default {
         'spin-slow': 'spin 3s linear infinite',
         'pulse-fast': 'pulse 1s linear infinite',
       },
+      backdropBlur: {
+        xs: '2px',
+      },
+      boxShadow: {
+        neumorphism: '10px 10px 20px #1c1c1c, -10px -10px 20px #2a2a2a',
+      },
     },
   },
   plugins: [],
