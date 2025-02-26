@@ -16,6 +16,7 @@ function CreateEventWithForm() {
   const [eventImage, setEventImage] = useState(null);
   const [category, setCategory] = useState('');
   const [registrationType, setRegistrationType] = useState('oneClick');
+  const [googleFormLink, setGoogleFormLink] = useState('');
   const [formSections, setFormSections] = useState([{ id: Date.now(), fields: [{ id: Date.now(), type: 'text', label: '' }] }]);
   const navigate = useNavigate();
 
@@ -32,6 +33,7 @@ function CreateEventWithForm() {
           eventImage: eventImage ? URL.createObjectURL(eventImage) : '',
           category,
           registrationType,
+          googleFormLink: registrationType === 'googleForm' ? googleFormLink : '',
           formSections,
           organizerId: user.uid, // Add organizerId
         });
@@ -161,8 +163,34 @@ function CreateEventWithForm() {
                 <span className="ml-2 text-white">Form</span>
               </label>
             </div>
+            <div>
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  className="form-radio h-5 w-5 text-blue-500"
+                  value="googleForm"
+                  checked={registrationType === 'googleForm'}
+                  onChange={(e) => setRegistrationType(e.target.value)}
+                />
+                <span className="ml-2 text-white">Google Form</span>
+              </label>
+            </div>
           </div>
         </div>
+
+        {registrationType === 'googleForm' && (
+          <div>
+            <label className="block text-white mb-2">Google Form Link</label>
+            <input
+              type="url"
+              value={googleFormLink}
+              onChange={(e) => setGoogleFormLink(e.target.value)}
+              className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="Enter Google Form link"
+              required
+            />
+          </div>
+        )}
 
         <div className="flex justify-end space-x-4">
           <button

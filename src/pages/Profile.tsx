@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebaseConfig';
-import { getFirestore, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
 import './Profile.css'; // Import the CSS file
 import Loading from '../components/Loading';  // Import the Loading component
@@ -42,6 +42,21 @@ function Profile() {
 
       return () => unsubscribe();
     }
+  }, [user]);
+
+  useEffect(() => {
+    const fetchRegisteredEventsCount = async () => {
+      if (user) {
+        const eventsQuery = query(collection(db, 'events'), where('attendees', 'array-contains', user.uid));
+        const eventsSnapshot = await getDocs(eventsQuery);
+        const registeredEventsCount = eventsSnapshot.size;
+        setProfileData((prevData: any) => ({
+          ...prevData,
+          eventsRegistered: registeredEventsCount,
+        }));
+      }
+    };
+    fetchRegisteredEventsCount();
   }, [user]);
 
   if (loading) {

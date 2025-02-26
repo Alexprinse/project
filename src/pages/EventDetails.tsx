@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getFirestore, doc, getDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { Calendar, MapPin, Users, Clock } from 'lucide-react';
 import { format } from 'date-fns';
@@ -57,14 +57,9 @@ const EventDetails: React.FC = () => {
         console.log("Registering user:", user.uid);
         
         const eventRef = doc(db, 'events', eventId);
-        const userRef = doc(db, 'users', user.uid);
 
         await updateDoc(eventRef, {
           attendees: arrayUnion(user.uid)
-        });
-
-        await updateDoc(userRef, {
-          upcomingEvents: increment(1)
         });
 
         console.log("Registration successful");
