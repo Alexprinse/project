@@ -12,3 +12,39 @@
 .neumorphism {
   box-shadow: var(--tw-shadow-neumorphism);
 }
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.min-h-screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  margin-top: auto;
+}
+
+.logout-button {
+  position: fixed;
+  color: white;
+  bottom: 4rem; /* Adjust this value as needed */
+  left: 1rem; /* Adjust this value as needed */
+  z-index: 50; /* Ensure it is above other elements */
+}
