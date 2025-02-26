@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { Bell, Eye, CheckCircle, AlertCircle } from 'lucide-react';
 import { db, auth } from '../firebaseConfig';
 import Loading from '../components/Loading';  // Import the Loading component
 
@@ -60,78 +61,105 @@ const Notifications: React.FC = () => {
     ));
   };
 
-  if (loading) {
-    return <Loading />;
-  }
-
   const newNotifications = notifications.filter(notification => !notification.read);
   const readNotifications = notifications.filter(notification => notification.read);
 
   return (
-    <div className="p-6 bg-gray-900 rounded-lg shadow-lg text-white">
-      <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center bg-gradient-to-r from-blue-400 to-purple-600 text-transparent bg-clip-text animate-pulse">
-        Notifications
-      </h1>
-      <div className="flex justify-center mb-8">
-        <button
-          className={`flex-1 p-4 mx-2 rounded-lg ${activeTab === 'new' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400'} hover:bg-blue-600 transition-colors duration-300`}
-          onClick={() => handleTabClick('new')}
-        >
-          New
-        </button>
-        <button
-          className={`flex-1 p-4 mx-2 rounded-lg ${activeTab === 'read' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400'} hover:bg-blue-600 transition-colors duration-300`}
-          onClick={() => handleTabClick('read')}
-        >
-          Read
-        </button>
-      </div>
-      <div className="flex justify-center">
-        {activeTab === 'new' && (
-          <div id="new" className="w-full">
-            <h2 className="text-2xl font-bold mb-4 text-center">New Notifications</h2>
-            {newNotifications.length === 0 ? (
-              <p className="text-center">No new notifications</p>
-            ) : (
-              newNotifications.map(notification => (
-                <div key={notification.id} className="bg-gray-800 p-4 mb-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
-                  <p className="text-lg font-semibold">{notification.message}</p>
-                  <button
-                    onClick={() => handleNotificationClick(notification.id)}
-                    className="mt-2 w-full py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white"
-                  >
-                    View Details
-                  </button>
-                  {notification.read && (
-                    <div className="mt-4">
-                      <p>{notification.details}</p>
-                      <button
-                        onClick={() => handleNotificationClose(notification.id)}
-                        className="mt-2 w-full py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
+    <div className="min-h-screen p-6 bg-gray-900">
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 bg-gray-800/50 rounded-2xl border border-gray-700/50">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Notifications</h1>
+            <p className="text-gray-400 mt-1">Manage your notifications and updates</p>
           </div>
-        )}
-        {activeTab === 'read' && (
-          <div id="read" className="w-full">
-            <h2 className="text-2xl font-bold mb-4 text-center">Read Notifications</h2>
-            {readNotifications.length === 0 ? (
-              <p className="text-center">No read notifications</p>
-            ) : (
-              readNotifications.map(notification => (
-                <div key={notification.id} className="bg-gray-800 p-4 mb-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
-                  <p className="text-lg font-semibold">{notification.message}</p>
-                  <div className="mt-4">
-                    <p>{notification.details}</p>
-                  </div>
+          <Bell className="h-12 w-12 text-blue-400" />
+        </div>
+
+        {/* Tabs */}
+        <div className="flex space-x-2 p-1 bg-gray-800/50 rounded-xl w-fit">
+          <button
+            className={`flex items-center px-4 py-2.5 rounded-lg transition-all duration-200 ${
+              activeTab === 'new'
+                ? 'bg-blue-500 text-white shadow-lg'
+                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+            }`}
+            onClick={() => handleTabClick('new')}
+          >
+            <AlertCircle className="h-4 w-4 mr-2" />
+            New {newNotifications.length > 0 && (
+              <span className="ml-2 px-2 py-0.5 text-xs bg-white/20 rounded-full">
+                {newNotifications.length}
+              </span>
+            )}
+          </button>
+          <button
+            className={`flex items-center px-4 py-2.5 rounded-lg transition-all duration-200 ${
+              activeTab === 'read'
+                ? 'bg-blue-500 text-white shadow-lg'
+                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+            }`}
+            onClick={() => handleTabClick('read')}
+          >
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Read
+          </button>
+        </div>
+
+        {/* Notifications Content */}
+        {loading ? (
+          <Loading />
+        ) : (
+          <div className="space-y-4">
+            {activeTab === 'new' ? (
+              newNotifications.length === 0 ? (
+                <div className="text-center py-12 bg-gray-800/50 rounded-2xl border border-gray-700/50">
+                  <Bell className="h-12 w-12 mx-auto text-gray-500 mb-4" />
+                  <p className="text-gray-400">No new notifications</p>
                 </div>
-              ))
+              ) : (
+                newNotifications.map(notification => (
+                  <div
+                    key={notification.id}
+                    className="group p-6 bg-gray-800/50 rounded-2xl border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300"
+                  >
+                    <p className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">
+                      {notification.message}
+                    </p>
+                    <button
+                      onClick={() => handleNotificationClick(notification.id)}
+                      className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors"
+                    >
+                      <Eye className="h-4 w-4" />
+                      View Details
+                    </button>
+                    {notification.read && (
+                      <div className="mt-4 p-4 bg-gray-900/50 rounded-lg">
+                        <p className="text-gray-300">{notification.details}</p>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )
+            ) : (
+              readNotifications.length === 0 ? (
+                <div className="text-center py-12 bg-gray-800/50 rounded-2xl border border-gray-700/50">
+                  <CheckCircle className="h-12 w-12 mx-auto text-gray-500 mb-4" />
+                  <p className="text-gray-400">No read notifications</p>
+                </div>
+              ) : (
+                readNotifications.map(notification => (
+                  <div
+                    key={notification.id}
+                    className="p-6 bg-gray-800/50 rounded-2xl border border-gray-700/50"
+                  >
+                    <p className="text-lg font-semibold text-white mb-4">{notification.message}</p>
+                    <div className="p-4 bg-gray-900/50 rounded-lg">
+                      <p className="text-gray-300">{notification.details}</p>
+                    </div>
+                  </div>
+                ))
+              )
             )}
           </div>
         )}

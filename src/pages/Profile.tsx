@@ -3,12 +3,12 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebaseConfig';
 import { getFirestore, doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
-import './Profile.css'; // Import the CSS file
-import Loading from '../components/Loading';  // Import the Loading component
+import { Camera, Edit } from 'lucide-react'; // Removed Trophy and ChevronLeft icons
+import Loading from '../components/Loading';
 
 const db = getFirestore();
 
-function Profile() {
+const Profile = () => {
   const [user] = useAuthState(auth);
   const [profileData, setProfileData] = useState<any>(null);
   const [upcomingEventsCount, setUpcomingEventsCount] = useState(0);
@@ -68,51 +68,85 @@ function Profile() {
   }
 
   return (
-    <div className="p-6 bg-gray-900 rounded-lg shadow-lg text-white">
-      <h1 className="text-3xl md:text-4xl font-bold mb-4 text-center bg-gradient-to-r from-blue-400 to-purple-600 text-transparent bg-clip-text animate-pulse">
-        Profile
-      </h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="profile-card">
-          <h2 className="text-xl font-semibold">Name</h2>
-          <p className="text-lg">{profileData.name}</p>
-        </div>
-        <div className="profile-card">
-          <h2 className="text-xl font-semibold">Branch</h2>
-          <p className="text-lg">{profileData.branch}</p>
-        </div>
-        <div className="profile-card">
-          <h2 className="text-xl font-semibold">Email</h2>
-          <p className="text-lg">{profileData.email}</p>
-        </div>
-        <div className="profile-card">
-          <h2 className="text-xl font-semibold">ID No</h2>
-          <p className="text-lg">{profileData.idNo}</p>
-        </div>
-        <div className="profile-card">
-          <h2 className="text-xl font-semibold">Events Registered</h2>
-          <p className="text-lg">{profileData.eventsRegistered}</p>
-        </div>
-        <div className="profile-card">
-          <h2 className="text-xl font-semibold">Upcoming Events</h2>
-          <p className="text-lg">{upcomingEventsCount}</p>
-        </div>
-        <div className="profile-card">
-          <h2 className="text-xl font-semibold">Completed Events</h2>
-          <p className="text-lg">{profileData.completedEvents}</p>
-        </div>
-        {(profileData.role === 'organizer' || profileData.role === 'admin') && (
-          <div className="profile-card">
-            <h2 className="text-xl font-semibold">Role</h2>
-            <p className="text-lg">{profileData.role}</p>
-            <Link to="/manage-events" className="mt-2 w-full py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-center block">
-              Manage Events
-            </Link>
+    <div className="bg-gray-900 rounded-lg shadow-lg text-white">
+      {/* Header Section */}
+      <div className="relative pb-20 mb-6">
+        {/* Profile Avatar */}
+        <div className="relative w-32 h-32 mx-auto mt-12">
+          <div className="w-full h-full rounded-full bg-gradient-to-r from-blue-400 to-purple-500 p-1">
+            <div className="w-full h-full rounded-full bg-gray-800 flex items-center justify-center overflow-hidden">
+              {profileData?.photoURL ? (
+                <img src={profileData.photoURL} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                  <span className="text-4xl font-bold text-white">
+                    {profileData?.name?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
-        )}
+          {/* Camera Button */}
+          <button className="absolute bottom-0 right-0 p-2 rounded-full bg-gray-800 border border-gray-700 text-gray-300 hover:text-white">
+            <Camera className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Profile Details Section */}
+      <div className="px-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">Profile Details</h2>
+          <button className="p-2 rounded-lg hover:bg-gray-800/50">
+            <Edit className="h-5 w-5 text-gray-300" />
+          </button>
+        </div>
+
+        {/* Profile Information */}
+        <div className="space-y-6">
+          {/* Personal Details */}
+          <div className="space-y-4">
+            <ProfileField label="Name" value={profileData.name} />
+            <ProfileField label="Email" value={profileData.email} />
+            <ProfileField label="ID No" value={profileData.idNo} />
+            <ProfileField label="Branch" value={profileData.branch} />
+          </div>
+
+          {/* Statistics */}
+          <div className="grid grid-cols-2 gap-4 mt-6">
+            <StatCard label="Events Registered" value={profileData.eventsRegistered} />
+            <StatCard label="Upcoming Events" value={upcomingEventsCount} />
+            <StatCard label="Completed Events" value={profileData.completedEvents} />
+            {(profileData.role === 'organizer' || profileData.role === 'admin') && (
+              <div className="col-span-2">
+                <Link 
+                  to="/manage-events" 
+                  className="w-full py-3 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white text-center font-medium block transition-all duration-200"
+                >
+                  Manage Events
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+// Helper Components
+const ProfileField = ({ label, value }: { label: string; value: string }) => (
+  <div className="flex justify-between items-center py-3 border-b border-gray-700/50">
+    <span className="text-gray-400">{label}</span>
+    <span className="font-medium">{value}</span>
+  </div>
+);
+
+const StatCard = ({ label, value }: { label: string; value: number }) => (
+  <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/30">
+    <div className="text-2xl font-bold">{value}</div>
+    <div className="text-sm text-gray-400">{label}</div>
+  </div>
+);
 
 export default Profile;
