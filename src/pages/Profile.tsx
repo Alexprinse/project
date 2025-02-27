@@ -396,7 +396,7 @@ const StatCard = ({ icon: Icon, label, value }: { icon: any; label: string; valu
       <div className="p-2 rounded-lg bg-blue-500/10">
         <Icon className="h-5 w-5 text-blue-400" />
       </div>
-      <span className="text-sm text-gray-400">{label}</span>
+      <span className="text-sm text-gray-400 truncate">{label}</span>
     </div>
     <div className="text-2xl font-bold text-white">{value}</div>
   </div>

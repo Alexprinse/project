@@ -121,7 +121,7 @@ const AppContent: React.FC = () => {
               )}
             </>
           )}
-          {user && role === 'organizer' || role === 'admin' && (
+          {(user && (role === 'organizer' || role === 'admin')) && (
             <Link
               to="/create-event"
               onClick={() => setIsMobileMenuOpen(false)}

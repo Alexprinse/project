@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { Bell, Eye, CheckCircle, AlertCircle } from 'lucide-react';
+import { Bell, Eye, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { db, auth } from '../firebaseConfig';
 import Loading from '../components/Loading';  // Import the Loading component
 import { format } from 'date-fns';
+import EventDetailsModal from '../components/EventDetailsModal'; // Import the modal component
 
 interface Notification {
   id: string;
@@ -22,6 +23,8 @@ const Notifications: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [authUser] = useAuthState(auth);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,22 +50,28 @@ const Notifications: React.FC = () => {
     navigate(`#${tab}`);
   };
 
-  const handleNotificationClick = async (id: string) => {
-    const notificationRef = doc(db, 'notifications', id);
+  const handleNotificationClick = async (notification: Notification) => {
+    if (notification.eventId) {
+      setSelectedEventId(notification.eventId);
+      setIsModalOpen(true);
+    }
+
+    const notificationRef = doc(db, 'notifications', notification.id);
     await updateDoc(notificationRef, { read: true });
 
-    setNotifications(notifications.map(notification =>
-      notification.id === id ? { ...notification, read: true } : notification
+    setNotifications(notifications.map(n =>
+      n.id === notification.id ? { ...n, read: true } : n
     ));
   };
 
-  const handleNotificationClose = async (id: string) => {
-    const notificationRef = doc(db, 'notifications', id);
-    await updateDoc(notificationRef, { read: true });
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedEventId(null);
+  };
 
-    setNotifications(notifications.map(notification =>
-      notification.id === id ? { ...notification, read: true } : notification
-    ));
+  const handleDeleteNotification = async (id: string) => {
+    await deleteDoc(doc(db, 'notifications', id));
+    setNotifications(notifications.filter(notification => notification.id !== id));
   };
 
   const newNotifications = notifications.filter(notification => !notification.read);
@@ -137,12 +146,12 @@ const Notifications: React.FC = () => {
                         </p>
                       </div>
                       {notification.eventId && (
-                        <Link
-                          to={`/event/${notification.eventId}`}
+                        <button
+                          onClick={() => handleNotificationClick(notification)}
                           className="px-4 py-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors text-sm"
                         >
                           View Event
-                        </Link>
+                        </button>
                       )}
                     </div>
                     {notification.read && (
@@ -151,7 +160,7 @@ const Notifications: React.FC = () => {
                       </div>
                     )}
                     <button
-                      onClick={() => handleNotificationClick(notification.id)}
+                      onClick={() => handleNotificationClick(notification)}
                       className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors"
                     >
                       <Eye className="h-4 w-4" />
@@ -172,9 +181,27 @@ const Notifications: React.FC = () => {
                     key={notification.id}
                     className="p-6 bg-gray-800/50 rounded-2xl border border-gray-700/50"
                   >
-                    <p className="text-lg font-semibold text-white mb-4">{notification.message}</p>
-                    <div className="p-4 bg-gray-900/50 rounded-lg">
-                      <p className="text-gray-300">{notification.details}</p>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-lg font-semibold text-white mb-4">{notification.message}</p>
+                        <div className="p-4 bg-gray-900/50 rounded-lg">
+                          <p className="text-gray-300">{notification.details}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => handleNotificationClick(notification)}
+                          className="px-4 py-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors text-sm"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          onClick={() => handleDeleteNotification(notification.id)}
+                          className="px-4 py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors text-sm flex items-center justify-center"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -183,6 +210,13 @@ const Notifications: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Event Details Modal */}
+      <EventDetailsModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        eventId={selectedEventId}
+      />
     </div>
   );
 };
