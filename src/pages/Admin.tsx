@@ -39,27 +39,27 @@ const Admin: React.FC = () => {
     fetchUser();
   }, [authUser]);
 
+  const fetchRequests = async () => {
+    setLoading(true);  // Set loading to true
+    const querySnapshot = await getDocs(collection(db, 'users'));
+    const requestsData = querySnapshot.docs
+      .map(doc => ({ ...doc.data(), id: doc.id } as User))
+      .filter((user: User) => user.requestOrganizer && user.role === 'general');
+    setRequests(requestsData);
+    setLoading(false);  // Set loading to false
+  };
+
+  const fetchOrganizers = async () => {
+    setLoading(true);  // Set loading to true
+    const querySnapshot = await getDocs(collection(db, 'users'));
+    const organizersData = querySnapshot.docs
+      .map(doc => ({ ...doc.data(), id: doc.id } as User))
+      .filter((user: User) => user.role === 'organizer');
+    setOrganizers(organizersData);
+    setLoading(false);  // Set loading to false
+  };
+
   useEffect(() => {
-    const fetchRequests = async () => {
-      setLoading(true);  // Set loading to true
-      const querySnapshot = await getDocs(collection(db, 'users'));
-      const requestsData = querySnapshot.docs
-        .map(doc => ({ ...doc.data(), id: doc.id } as User))
-        .filter((user: User) => user.requestOrganizer && user.role === 'general');
-      setRequests(requestsData);
-      setLoading(false);  // Set loading to false
-    };
-
-    const fetchOrganizers = async () => {
-      setLoading(true);  // Set loading to true
-      const querySnapshot = await getDocs(collection(db, 'users'));
-      const organizersData = querySnapshot.docs
-        .map(doc => ({ ...doc.data(), id: doc.id } as User))
-        .filter((user: User) => user.role === 'organizer');
-      setOrganizers(organizersData);
-      setLoading(false);  // Set loading to false
-    };
-
     if (user && user.role === 'admin') {
       fetchRequests();
       fetchOrganizers();
@@ -67,13 +67,20 @@ const Admin: React.FC = () => {
   }, [user]);
 
   const approveOrganizer = async (userId: string) => {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      role: 'organizer',
-      requestOrganizer: false,
-    });
-    setRequests(requests.filter(request => request.id !== userId));
-    fetchOrganizers();
+    try {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        role: 'organizer',
+        requestOrganizer: false,
+      });
+      console.log(`User ${userId} approved as organizer`);
+
+      // Update the state
+      setRequests(requests.filter(request => request.id !== userId));
+      fetchOrganizers();
+    } catch (error) {
+      console.error('Error approving organizer:', error);
+    }
   };
 
   const denyOrganizerRequest = async (userId: string) => {
