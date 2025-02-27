@@ -49,78 +49,90 @@ const ProfileNav: React.FC = () => {
     <div className="bg-gray-800/75 backdrop-blur-sm w-[calc(100%-2rem)] mx-4 mt-2 md:mt-0 rounded-lg border border-gray-700/30">
       <div className="max-w-8xl mx-auto px-4 py-1">
         <div className="flex justify-end pr-2">
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="flex items-center space-x-3 hover:bg-gray-700/50 p-2.5 rounded-lg transition-all duration-200"
-            >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 p-[2px]">
-                <div className="w-full h-full rounded-full bg-gray-800 flex items-center justify-center">
-                  {userName ? (
-                    <span className="text-xl font-bold text-white">
-                      {userName.charAt(0).toUpperCase()}
-                    </span>
-                  ) : (
-                    <User className="h-6 w-6 text-gray-100" />
-                  )}
+          {user ? (
+            // Show profile dropdown for logged in users
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center space-x-3 hover:bg-gray-700/50 p-2.5 rounded-lg transition-all duration-200"
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 p-[2px]">
+                  <div className="w-full h-full rounded-full bg-gray-800 flex items-center justify-center">
+                    {userName ? (
+                      <span className="text-xl font-bold text-white">
+                        {userName.charAt(0).toUpperCase()}
+                      </span>
+                    ) : (
+                      <User className="h-6 w-6 text-gray-100" />
+                    )}
+                  </div>
                 </div>
-              </div>
-              <span className="text-gray-100 font-medium">
-                Hi, {userName || 'Guest'}
-              </span>
-            </button>
-
-            {isOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg py-1 z-50 border border-gray-700/30">
-                {user ? (
-                  <>
-                    <button
-                      onClick={() => {
-                        navigate('/profile');
-                        setIsOpen(false);
-                      }}
-                      className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-gray-700/50 w-full text-left"
-                    >
-                      <User className="h-4 w-4" />
-                      <span>Profile</span>
-                    </button>
-
-                    {(userRole === 'admin' || userRole === 'organizer') && (
+                <span className="text-gray-100 font-medium">
+                  Hi, {userName}
+                </span>
+              </button>
+              {/* ... keep existing dropdown menu ... */}
+              {isOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg py-1 z-50 border border-gray-700/30">
+                  {user ? (
+                    <>
                       <button
                         onClick={() => {
-                          navigate('/manage-events');
+                          navigate('/profile');
                           setIsOpen(false);
                         }}
                         className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-gray-700/50 w-full text-left"
                       >
-                        <LayoutGrid className="h-4 w-4" />
-                        <span>Manage Events</span>
+                        <User className="h-4 w-4" />
+                        <span>Profile</span>
                       </button>
-                    )}
 
+                      {(userRole === 'admin' || userRole === 'organizer') && (
+                        <button
+                          onClick={() => {
+                            navigate('/manage-events');
+                            setIsOpen(false);
+                          }}
+                          className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-gray-700/50 w-full text-left"
+                        >
+                          <LayoutGrid className="h-4 w-4" />
+                          <span>Manage Events</span>
+                        </button>
+                      )}
+
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-gray-700/50 w-full text-left"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span>Logout</span>
+                      </button>
+                    </>
+                  ) : (
                     <button
-                      onClick={handleLogout}
+                      onClick={() => {
+                        navigate('/login');
+                        setIsOpen(false);
+                      }}
                       className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-gray-700/50 w-full text-left"
                     >
-                      <LogOut className="h-4 w-4" />
-                      <span>Logout</span>
+                      <LogIn className="h-4 w-4" />
+                      <span>Login</span>
                     </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => {
-                      navigate('/login');
-                      setIsOpen(false);
-                    }}
-                    className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-gray-700/50 w-full text-left"
-                  >
-                    <LogIn className="h-4 w-4" />
-                    <span>Login</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            // Show login button for logged out users
+            <button
+              onClick={() => navigate('/login')}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              <LogIn className="h-4 w-4" />
+              <span>Login</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -5,6 +5,8 @@ import { format } from 'date-fns';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import Loading from '../components/Loading';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../firebaseConfig';
 
 const categoryImages = {
   Technology: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b",
@@ -22,7 +24,31 @@ const getEventTypeStyle = (isTeamEvent: boolean) => {
     : { bg: 'bg-green-500/10', text: 'text-green-400', border: 'border-green-500/20' };
 };
 
-function Events() {
+const Events: React.FC = () => {
+  const [user, authLoading] = useAuthState(auth);
+  const navigate = useNavigate();
+
+  // Add this new useEffect for handling auth state changes
+  useEffect(() => {
+    const handleAuthChange = () => {
+      if (!authLoading) {
+        // If user is not logged in, redirect to events page
+        if (!user && window.location.pathname === '/') {
+          navigate('/events');
+        }
+      }
+    };
+
+    handleAuthChange();
+
+    // Listen for auth state changes
+    const unsubscribe = auth.onAuthStateChanged(() => {
+      handleAuthChange();
+    });
+
+    return () => unsubscribe();
+  }, [user, authLoading, navigate]);
+
   interface Event {
     id: string;
     title: string;
@@ -61,7 +87,6 @@ function Events() {
     upcomingEvents: 0,
     engagementRate: 0,
   });
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -428,12 +453,23 @@ function Events() {
                   </div>
 
                   {/* Action Button */}
-                  <Link 
-                    to={`/event/${event.id}`}
-                    className="block w-full py-2.5 px-4 bg-gray-700/50 text-white text-center rounded-lg hover:bg-blue-500/20 hover:text-blue-400 transition-colors"
-                  >
-                    View Details
-                  </Link>
+                  <div className="mt-4">
+                    {user ? (
+                      <Link 
+                        to={`/event/${event.id}`}
+                        className="block w-full py-2.5 px-4 bg-blue-500 text-white text-center rounded-lg hover:bg-blue-600 transition-colors"
+                      >
+                        View Details
+                      </Link>
+                    ) : (
+                      <Link 
+                        to="/login"
+                        className="block w-full py-2.5 px-4 bg-blue-500 text-white text-center rounded-lg hover:bg-blue-600 transition-colors"
+                      >
+                        Login to Register
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
