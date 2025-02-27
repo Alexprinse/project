@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Search, Filter, Calendar, MapPin, Users, X, SlidersHorizontal, Clock, AlertCircle, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
@@ -17,22 +17,79 @@ const categoryImages = {
   default: "https://images.unsplash.com/photo-1523580494863-6f3031224c94"
 };
 
-// Add this helper function at the top of the file, after imports
 const getEventTypeStyle = (isTeamEvent: boolean) => {
   return isTeamEvent 
     ? { bg: 'bg-purple-500/10', text: 'text-purple-400', border: 'border-purple-500/20' }
     : { bg: 'bg-green-500/10', text: 'text-green-400', border: 'border-green-500/20' };
 };
 
+const getRemainingTime = (deadline: any): string => {
+  try {
+    const now = new Date();
+    
+    let deadlineDate: Date;
+    if (deadline?.seconds) {
+      deadlineDate = new Date(deadline.seconds * 1000);
+    } else if (deadline instanceof Date) {
+      deadlineDate = deadline;
+    } else {
+      return 'Invalid date';
+    }
+    
+    const distance = deadlineDate.getTime() - now.getTime();
+
+    if (distance < 0) return 'Registration Closed';
+
+    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    parts.push(`${minutes}m`);
+
+    return parts.join(' ');
+  } catch (error) {
+    console.error('Error calculating remaining time:', error);
+    return 'Invalid date';
+  }
+};
+
 const Events: React.FC = () => {
   const [user, authLoading] = useAuthState(auth);
   const navigate = useNavigate();
+  const [countdownTrigger, setCountdownTrigger] = useState(0);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    category: '',
+    timeFrame: 'all',
+    eventType: 'all',
+    registrationType: 'all',
+  });
+  const [sortBy, setSortBy] = useState('date');
+  const [eventStats, setEventStats] = useState<EventStats>({
+    totalEvents: 0,
+    totalAttendees: 0,
+    upcomingEvents: 0,
+    engagementRate: 0,
+  });
 
-  // Add this new useEffect for handling auth state changes
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdownTrigger(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   useEffect(() => {
     const handleAuthChange = () => {
       if (!authLoading) {
-        // If user is not logged in, redirect to events page
         if (!user && window.location.pathname === '/') {
           navigate('/events');
         }
@@ -41,7 +98,6 @@ const Events: React.FC = () => {
 
     handleAuthChange();
 
-    // Listen for auth state changes
     const unsubscribe = auth.onAuthStateChanged(() => {
       handleAuthChange();
     });
@@ -59,6 +115,7 @@ const Events: React.FC = () => {
     registrationType?: string;
     attendees?: string[];
     location?: string;
+    registrationDeadline?: { seconds: number; nanoseconds: number } | Date;
   }
 
   interface EventStats {
@@ -67,26 +124,6 @@ const Events: React.FC = () => {
     upcomingEvents: number;
     engagementRate: number;
   }
-  
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    category: '',
-    timeFrame: 'all', // 'today', 'week', 'month', 'all'
-    eventType: 'all', // 'team', 'solo', 'all'
-    registrationType: 'all', // 'oneClick', 'googleForm', 'all'
-  });
-  const [sortBy, setSortBy] = useState('date'); // 'date', 'popularity'
-  const [eventStats, setEventStats] = useState<EventStats>({
-    totalEvents: 0,
-    totalAttendees: 0,
-    upcomingEvents: 0,
-    engagementRate: 0,
-  });
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -107,13 +144,15 @@ const Events: React.FC = () => {
             isTeamEvent: eventData.isTeamEvent,
             registrationType: eventData.registrationType,
             attendees: eventData.attendees,
-            location: eventData.location
+            location: eventData.location,
+            registrationDeadline: eventData.registrationDeadline?.seconds ? 
+              new Date(eventData.registrationDeadline.seconds * 1000) : 
+              undefined
           };
         });
         const eventData = await Promise.all(eventPromises);
         setEvents(eventData);
 
-        // Calculate stats
         const now = new Date();
         const upcomingEventsCount = eventData.filter(event => 
           new Date(event.dateTime) > now
@@ -141,8 +180,7 @@ const Events: React.FC = () => {
     fetchEvents();
   }, []);
 
-  // Filter events based on category selection
-  const getFilteredEvents = () => {
+  const getFilteredEvents = useCallback(() => {
     return events.filter(event => {
       const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           event.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -180,9 +218,8 @@ const Events: React.FC = () => {
       }
       return b.dateTime.getTime() - a.dateTime.getTime();
     });
-  };
+  }, [events, filters, searchTerm, sortBy, countdownTrigger]);
 
-  // Add this handler function inside the Events component
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
@@ -190,7 +227,6 @@ const Events: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
             Campus Events
@@ -198,10 +234,8 @@ const Events: React.FC = () => {
           <p className="text-gray-400">Discover and participate in exciting campus activities</p>
         </div>
 
-        {/* Stats Dashboard */}
         <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-gray-700/50 p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Total Events */}
             <div className="bg-gray-800/80 p-6 rounded-xl border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
@@ -214,7 +248,6 @@ const Events: React.FC = () => {
               </div>
             </div>
 
-            {/* Total Attendees */}
             <div className="bg-gray-800/80 p-6 rounded-xl border border-gray-700/50 hover:border-purple-500/50 transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
@@ -227,7 +260,6 @@ const Events: React.FC = () => {
               </div>
             </div>
 
-            {/* Upcoming Events */}
             <div className="bg-gray-800/80 p-6 rounded-xl border border-gray-700/50 hover:border-green-500/50 transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
@@ -240,7 +272,6 @@ const Events: React.FC = () => {
               </div>
             </div>
 
-            {/* Engagement Rate */}
             <div className="bg-gray-800/80 p-6 rounded-xl border border-gray-700/50 hover:border-yellow-500/50 transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
@@ -257,7 +288,6 @@ const Events: React.FC = () => {
           </div>
         </div>
 
-        {/* Search and Filter Bar */}
         <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-gray-700/50 p-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
@@ -283,7 +313,6 @@ const Events: React.FC = () => {
             </button>
           </div>
 
-          {/* Active Filters */}
           {(filters.category || filters.timeFrame !== 'all' || filters.eventType !== 'all') && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span className="text-sm text-gray-400">Active filters:</span>
@@ -323,7 +352,6 @@ const Events: React.FC = () => {
             </div>
           )}
 
-          {/* Filter Panel */}
           {showFilters && (
             <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-700/30 rounded-xl border border-gray-600/10">
               <select
@@ -372,7 +400,6 @@ const Events: React.FC = () => {
           )}
         </div>
 
-        {/* Events Grid with updated styling */}
         {loading ? (
           <Loading />
         ) : error ? (
@@ -391,7 +418,6 @@ const Events: React.FC = () => {
               <div key={event.id} 
                 className="group bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-gray-700/50 overflow-hidden hover:border-blue-500/50 transition-all duration-300"
               >
-                {/* Image Section */}
                 <div className="relative h-48">
                   <img
                     src={categoryImages[event.category as keyof typeof categoryImages] || categoryImages.default}
@@ -400,7 +426,6 @@ const Events: React.FC = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/50 to-transparent" />
                   
-                  {/* Category and Event Type Badges - Positioned over image */}
                   <div className="absolute bottom-4 left-4 flex flex-wrap items-center gap-2">
                     <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 backdrop-blur-md">
                       {event.category}
@@ -417,9 +442,7 @@ const Events: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Content Section */}
                 <div className="p-6 space-y-4">
-                  {/* Title and Date */}
                   <div className="space-y-1">
                     <div className="flex justify-between items-start">
                       <h3 className="text-xl font-semibold text-white group-hover:text-blue-400 transition-colors line-clamp-2 flex-1">
@@ -431,12 +454,10 @@ const Events: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Description */}
                   <p className="text-gray-400 text-sm line-clamp-2">
                     {event.description}
                   </p>
 
-                  {/* Event Details */}
                   <div className="grid grid-cols-2 gap-3 text-sm text-gray-400">
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 flex-shrink-0" />
@@ -452,7 +473,6 @@ const Events: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Action Button */}
                   <div className="mt-4">
                     {user ? (
                       <Link 
@@ -471,6 +491,24 @@ const Events: React.FC = () => {
                     )}
                   </div>
                 </div>
+
+                {event.registrationDeadline && (
+                  <div className={`px-6 py-2 ${
+                    getRemainingTime(event.registrationDeadline) !== 'Registration Closed'
+                      ? 'bg-yellow-500/10 border-t border-yellow-500/20' 
+                      : 'bg-red-500/10 border-t border-red-500/20'
+                  }`}>
+                    <p className={`text-sm ${
+                      getRemainingTime(event.registrationDeadline) !== 'Registration Closed'
+                        ? 'text-yellow-400'
+                        : 'text-red-400'
+                    }`}>
+                      {getRemainingTime(event.registrationDeadline) !== 'Registration Closed'
+                        ? `Registration closes in: ${getRemainingTime(event.registrationDeadline)}`
+                        : 'Registration Closed'}
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>

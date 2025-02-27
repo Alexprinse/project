@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { Calendar, MapPin, Users, Clock } from 'lucide-react';
 import { format } from 'date-fns';
@@ -19,8 +19,60 @@ const categoryImages = {
   default: "https://images.unsplash.com/photo-1523580494863-6f3031224c94"
 };
 
+const getRemainingTime = (deadline: any): string => {
+  try {
+    const now = new Date();
+    
+    let deadlineDate: Date;
+    if (deadline?.seconds) {
+      deadlineDate = new Date(deadline.seconds * 1000);
+    } else if (deadline instanceof Date) {
+      deadlineDate = deadline;
+    } else {
+      return 'Invalid date';
+    }
+    
+    const distance = deadlineDate.getTime() - now.getTime();
+
+    if (distance < 0) return 'Registration Closed';
+
+    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    parts.push(`${minutes}m`);
+
+    return parts.join(' ');
+  } catch (error) {
+    console.error('Error calculating remaining time:', error);
+    return 'Invalid date';
+  }
+};
+
 const EventDetails: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
+  interface TeamMember {
+    name: string;
+    email: string;
+    idNumber: string;
+    branch: string;
+  }
+
+  interface TeamData {
+    leader: {
+      uid: string;
+      name: string;
+      email: string;
+      idNumber: string;
+      branch: string;
+    };
+    members: TeamMember[];
+    registeredAt: any;
+  }
+
   interface Event {
     title: string;
     eventImage?: string;
@@ -38,6 +90,8 @@ const EventDetails: React.FC = () => {
     organizationType: string;
     organizer: string;
     description: string;
+    teams?: TeamData[];
+    registrationDeadline?: { seconds: number };
   }
 
   const [event, setEvent] = useState<Event | null>(null);
@@ -46,6 +100,8 @@ const EventDetails: React.FC = () => {
   const [user] = useAuthState(auth);
   const [isRegistered, setIsRegistered] = useState(false);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+  const [countdownTrigger, setCountdownTrigger] = useState(0);
+  const [isRegistering, setIsRegistering] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -87,11 +143,33 @@ const EventDetails: React.FC = () => {
     fetchEvent();
   }, [eventId, user]);
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdownTrigger(prev => prev + 1);
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
+
   const handleRegister = async () => {
     if (!user) {
       alert('You need to be logged in to register for the event.');
       navigate('/login');
       return;
+    }
+
+    // Prevent multiple registration attempts
+    if (isRegistering) {
+      return;
+    }
+
+    // Check if registration is closed
+    if (event?.registrationDeadline) {
+      const deadlineTime = new Date(event.registrationDeadline.seconds * 1000);
+      if (deadlineTime < new Date()) {
+        alert('Registration for this event has closed');
+        return;
+      }
     }
 
     // Check if it's a Google Form registration type
@@ -104,34 +182,37 @@ const EventDetails: React.FC = () => {
     if (event && event.isTeamEvent) {
       setIsTeamModalOpen(true);
     } else {
+      setIsRegistering(true);
       try {
         await registerSingleUser();
       } catch (err) {
         console.error('Error registering for event:', err);
         alert('Failed to register for the event. Please try again.');
+      } finally {
+        setIsRegistering(false);
       }
     }
   };
 
   const registerSingleUser = async () => {
     try {
-      if (user) {
-        console.log("Registering user:", user.uid);
-      } else {
-        console.error("User is not logged in.");
+      if (!user || !eventId || !event) {
+        throw new Error('Missing required data');
+      }
+
+      const eventRef = doc(db, 'events', eventId);
+
+      // Check if already registered
+      if (event.attendees?.includes(user.uid)) {
+        alert('You are already registered for this event.');
+        setIsRegistered(true);
         return;
       }
-      
-      if (!eventId) {
-        throw new Error('Event ID is undefined');
-      }
-      const eventRef = doc(db, 'events', eventId);
 
       await updateDoc(eventRef, {
         attendees: arrayUnion(user.uid)
       });
 
-      console.log("Registration successful");
       setIsRegistered(true);
       alert('You have successfully registered for the event.');
 
@@ -152,62 +233,103 @@ const EventDetails: React.FC = () => {
           console.error('Error sending email:', error);
         });
 
+      // Add notification
+      await addDoc(collection(db, 'notifications'), {
+        userId: user.uid,
+        message: `You have registered for ${event?.title}`,
+        details: `Event Details:
+        Date: ${format(new Date(event!.dateTime.seconds * 1000), 'MMMM d, yyyy h:mm aa')}
+        Location: ${event?.location}`,
+        read: false,
+        createdAt: serverTimestamp(),
+        type: 'event_registration',
+        eventId: eventId
+      });
+
     } catch (err) {
       console.error('Error registering for event:', err);
-      alert('Failed to register for the event. Please try again.');
+      throw err; // Propagate error to handleRegister
     }
   };
 
-  interface TeamMember {
-    name: string;
-    email: string;
-    idNumber: string;
-    branch: string;
-  }
-
   const handleTeamRegistration = async (teamMembers: TeamMember[]) => {
     try {
-      const eventRef = doc(db, 'events', eventId!);
+      if (!user || !eventId || !event) {
+        throw new Error('Missing required data');
+      }
+
+      // Check if user's email is verified
+      if (!user.emailVerified) {
+        alert('Please verify your email before registering a team.');
+        return;
+      }
+
+      // Check if registration deadline has passed
+      if (event.registrationDeadline) {
+        const deadlineTime = new Date(event.registrationDeadline.seconds * 1000);
+        if (deadlineTime < new Date()) {
+          alert('Registration for this event has closed');
+          return;
+        }
+      }
+
+      const eventRef = doc(db, 'events', eventId);
+      
+      // Create team data object
       const teamData = {
         leader: {
-          uid: user!.uid,
+          uid: user.uid,
           name: teamMembers[0].name,
           email: teamMembers[0].email,
           idNumber: teamMembers[0].idNumber,
           branch: teamMembers[0].branch,
         },
-        members: teamMembers.slice(1).map(member => ({
-          name: member.name,
-          email: member.email,
-          idNumber: member.idNumber,
-          branch: member.branch,
-        })),
-        registeredAt: new Date(),
+        members: teamMembers.slice(1),
+        registeredAt: new Date().toISOString(),
       };
 
+      // Update the event document
       await updateDoc(eventRef, {
         teams: arrayUnion(teamData),
-        attendees: arrayUnion(user!.uid),
+        attendees: arrayUnion(user.uid),
+        lastUpdated: serverTimestamp(),
       });
 
-      setIsRegistered(true);
-      setIsTeamModalOpen(false);
-      alert('Team registered successfully!');
+      // // Create notification
+      // await addDoc(collection(db, 'notifications'), {
+      //   userId: user.uid,
+      //   message: `Team registration successful for ${event.title}`,
+      //   details: `Team Details:
+      //   Leader: ${teamMembers[0].name}
+      //   Members: ${teamMembers.slice(1).map(m => m.name).join(', ')}
+      //   Event Date: ${format(new Date(event.dateTime.seconds * 1000), 'MMMM d, yyyy h:mm aa')}
+      //   Location: ${event.location}`,
+      //   read: false,
+      //   createdAt: serverTimestamp(),
+      //   type: 'team_registration',
+      //   eventId: eventId
+      // });
 
-      // Send confirmation emails to all team members
-      teamMembers.forEach(member => {
+      // Send confirmation email
+      try {
         const templateParams = {
-          user_name: member.name,
-          user_email: member.email,
-          event_title: event!.title,
-          event_date: format(event!.dateTime.seconds * 1000, 'MMMM d, yyyy h:mm aa'),
-          event_location: event!.location,
-          team_leader: teamMembers[0].name,
+          user_name: teamMembers[0].name,
+          user_email: teamMembers[0].email,
+          event_title: event.title,
+          event_date: format(new Date(event.dateTime.seconds * 1000), 'MMMM d, yyyy h:mm aa'),
+          event_location: event.location,
+          team_members: teamMembers.slice(1).map(m => m.name).join(', ')
         };
 
-        emailjs.send('service_ix7pdyd', 'template_v4knz7b', templateParams, 'W3NTTHqXUaDSrUjZo')
-          .catch((error) => console.error('Error sending email:', error));
-      });
+        await emailjs.send('service_ix7pdyd', 'template_v4knz7b', templateParams, 'W3NTTHqXUaDSrUjZo');
+      } catch (emailError) {
+        console.error('Error sending confirmation email:', emailError);
+      }
+
+      setIsRegistered(true);
+      alert('Team registered successfully!');
+      setIsTeamModalOpen(false);
+
     } catch (err) {
       console.error('Error registering team:', err);
       alert('Failed to register team. Please try again.');
@@ -268,6 +390,20 @@ const EventDetails: React.FC = () => {
             <MapPin className="h-5 w-5 mr-2" />
             <span>{event.location}</span>
           </div>
+          {/* Add Registration Deadline Countdown */}
+          {event.registrationDeadline && (
+            <div className={`p-3 rounded-lg ${
+              getRemainingTime(event.registrationDeadline) !== 'Registration Closed'
+                ? 'bg-yellow-500/10 text-yellow-400'
+                : 'bg-red-500/10 text-red-400'
+            }`}>
+              <p className="text-sm font-medium">
+                {getRemainingTime(event.registrationDeadline) !== 'Registration Closed'
+                  ? `Registration closes in: ${getRemainingTime(event.registrationDeadline)}`
+                  : 'Registration Closed'}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -333,18 +469,22 @@ const EventDetails: React.FC = () => {
       {/* Register Button */}
       <button
         onClick={handleRegister}
-        disabled={isRegistered}
+        disabled={isRegistered || isRegistering}
         className={`mt-6 w-full py-3 rounded-lg transition-colors ${
           isRegistered 
             ? 'bg-gray-700 cursor-not-allowed' 
-            : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700'
+            : isRegistering
+              ? 'bg-gray-600 cursor-wait'
+              : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700'
         }`}
       >
         {isRegistered 
           ? 'Already Registered' 
-          : event.registrationType === 'googleForm'
-            ? 'Open Registration Form'
-            : `Register ${event.isTeamEvent ? 'Team' : 'Now'}`
+          : isRegistering
+            ? 'Registering...'
+            : event.registrationType === 'googleForm'
+              ? 'Open Registration Form'
+              : `Register ${event.isTeamEvent ? 'Team' : 'Now'}`
         }
       </button>
 

@@ -8,6 +8,22 @@ import { auth } from '../firebaseConfig';
 
 const db = getFirestore();
 
+const isInPast = (date: Date | null): boolean => {
+  if (!date) return false;
+  return date < new Date();
+};
+
+const isDeadlineValid = (deadline: Date | null, eventDate: Date | null): boolean => {
+  if (!deadline || !eventDate) return false;
+  const now = new Date();
+  return deadline > now && deadline < eventDate;
+};
+
+const isAfterNow = (selectedDate: Date): boolean => {
+  const now = new Date();
+  return selectedDate.getTime() > now.getTime();
+};
+
 function CreateEventWithForm() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -23,6 +39,7 @@ function CreateEventWithForm() {
   const [minTeamSize, setMinTeamSize] = useState<number>(1);
   const [maxTeamSize, setMaxTeamSize] = useState<number>(2);
   const [isTeamEvent, setIsTeamEvent] = useState(false);
+  const [registrationDeadline, setRegistrationDeadline] = useState<Date | null>(null);
   const navigate = useNavigate();
 
   interface FormSection {
@@ -51,11 +68,25 @@ function CreateEventWithForm() {
     organizerId: string;
     organizationType: string;
     organizer: string;
+    registrationDeadline: Date | null;
+    isRegistrationClosed?: boolean;
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
+      // Validate event date
+      if (isInPast(dateTime)) {
+        alert("Cannot create events in the past");
+        return;
+      }
+
+      // Validate registration deadline
+      if (!isDeadlineValid(registrationDeadline, dateTime)) {
+        alert("Registration deadline must be between now and event date");
+        return;
+      }
+
       const user = auth.currentUser;
       if (user) {
         // Create the base event data
@@ -73,6 +104,8 @@ function CreateEventWithForm() {
           organizerId: user.uid,
           organizationType,
           organizer,
+          registrationDeadline,
+          isRegistrationClosed: false
         };
 
         // Add teamConfig only if it's a team event
@@ -160,8 +193,50 @@ function CreateEventWithForm() {
             dateFormat="MMMM d, yyyy h:mm aa"
             className="w-full bg-gray-800/50 text-white px-4 py-2.5 rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent placeholder-gray-500"
             placeholderText="Select event date and time"
+            minDate={new Date()} // This prevents selecting past dates
+            filterTime={(time) => {
+              const selectedDateTime = new Date(time);
+              return isAfterNow(selectedDateTime);
+            }}
             required
           />
+          <p className="mt-1 text-sm text-gray-400">
+            Select a date and time after the current time
+          </p>
+        </div>
+
+        {/* Registration Deadline */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Registration Deadline</label>
+          <DatePicker
+            selected={registrationDeadline}
+            onChange={(date) => setRegistrationDeadline(date)}
+            showTimeSelect
+            dateFormat="MMMM d, yyyy h:mm aa"
+            className="w-full bg-gray-800/50 text-white px-4 py-2.5 rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent placeholder-gray-500"
+            placeholderText="Select registration deadline"
+            minDate={new Date()}
+            maxDate={dateTime || undefined}
+            filterTime={(time) => {
+              const selectedDateTime = new Date(time);
+              
+              // Must be after current time
+              if (!isAfterNow(selectedDateTime)) {
+                return false;
+              }
+              
+              // Must be before event time if same day
+              if (dateTime && selectedDateTime.toDateString() === dateTime.toDateString()) {
+                return selectedDateTime.getTime() < dateTime.getTime();
+              }
+              
+              return true;
+            }}
+            required
+          />
+          <p className="mt-1 text-sm text-gray-400">
+            Select a deadline after current time and before event time
+          </p>
         </div>
 
         {/* Location */}

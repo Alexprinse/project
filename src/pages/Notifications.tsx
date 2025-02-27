@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { Bell, Eye, CheckCircle, AlertCircle } from 'lucide-react';
 import { db, auth } from '../firebaseConfig';
 import Loading from '../components/Loading';  // Import the Loading component
+import { format } from 'date-fns';
 
 interface Notification {
   id: string;
   message: string;
   details: string;
   read: boolean;
+  createdAt: any;
+  type: 'event_registration' | 'team_registration' | 'other';
+  eventId?: string;
 }
 
 const Notifications: React.FC = () => {
@@ -123,9 +127,29 @@ const Notifications: React.FC = () => {
                     key={notification.id}
                     className="group p-6 bg-gray-800/50 rounded-2xl border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300"
                   >
-                    <p className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">
-                      {notification.message}
-                    </p>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">
+                          {notification.message}
+                        </p>
+                        <p className="text-sm text-gray-400 mt-1">
+                          {format(notification.createdAt?.toDate(), 'MMM d, yyyy h:mm aa')}
+                        </p>
+                      </div>
+                      {notification.eventId && (
+                        <Link
+                          to={`/event/${notification.eventId}`}
+                          className="px-4 py-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors text-sm"
+                        >
+                          View Event
+                        </Link>
+                      )}
+                    </div>
+                    {notification.read && (
+                      <div className="mt-4 p-4 bg-gray-900/50 rounded-lg">
+                        <p className="text-gray-300 whitespace-pre-line">{notification.details}</p>
+                      </div>
+                    )}
                     <button
                       onClick={() => handleNotificationClick(notification.id)}
                       className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors"
@@ -133,11 +157,6 @@ const Notifications: React.FC = () => {
                       <Eye className="h-4 w-4" />
                       View Details
                     </button>
-                    {notification.read && (
-                      <div className="mt-4 p-4 bg-gray-900/50 rounded-lg">
-                        <p className="text-gray-300">{notification.details}</p>
-                      </div>
-                    )}
                   </div>
                 ))
               )
