@@ -432,3 +432,4 @@ const SoloParticipantsList: React.FC<SoloParticipantsListProps> = ({ participant
 );
 
 export default EventParticipants;
+

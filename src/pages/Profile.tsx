@@ -8,6 +8,7 @@ import {
   Trophy, BookOpen, Sparkles, ChevronRight, Settings, MapPin, Check
 } from 'lucide-react';
 import Loading from '../components/Loading';
+import PasswordEditModal from '../components/PasswordEditModal'; // Import the PasswordEditModal component
 import { format } from 'date-fns';
 
 const db = getFirestore();
@@ -68,6 +69,9 @@ const Profile = () => {
     name: '',
     bio: '',
   });
+
+  // Add state for password edit modal
+  const [isPasswordEditModalOpen, setIsPasswordEditModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -197,6 +201,18 @@ const Profile = () => {
                   handleSaveChanges={handleSaveChanges}
                 />
               </div>
+
+              {/* Password Edit Button */}
+              {isEditing && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => setIsPasswordEditModalOpen(true)}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Change Password
+                  </button>
+                </div>
+              )}
 
               {/* Stats Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
@@ -385,6 +401,11 @@ const Profile = () => {
           </div>
         )}
       </div>
+.      {/* Password Edit Modal */}
+      <PasswordEditModal
+        isOpen={isPasswordEditModalOpen}
+        onClose={() => setIsPasswordEditModalOpen(false)}
+      />
     </div>
   );
 };
